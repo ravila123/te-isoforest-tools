@@ -1,83 +1,81 @@
-1. Log_parser.py  (pre-run Paraquet files for all golden runs)
--> Input: Raw TE Logs.
--> Output: Clean numeric Table (1 row = 1 run) saved as Dataset/<run_name>.parquet
+# TE IsoForest Tools
 
-2. isolation_forest.py
--> Input: All the pre-run Parquet files in Dataset/.
--> Output: A trained model saved to models/isofrest_v1.pkl, plus a tet file lissting exactly which feature columns were used in feature.txt
+Collection of small utilities to parse test-equipment logs and train an
+[Isolation Forest](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html)
+model for anomaly detection.
 
-3. Plot_score2.py (model review/score visualization)
--> Input: Tranined models/isoforest_v1.plk
-          feature.txt
-          All pre-run Parquet files in Dataset/.
--> Output: Scores each run (how normal/abnormal), writ4es a .csv of runs+scores+model prediction, savved plots i.e. histograms of scores & sorted score curve in PNG file.
+These scripts expect Python 3.8+ and the packages listed in
+[`requirements.txt`](requirements.txt).
+
+## Quick start
+
+1. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Adjust the path constants near the top of each script to match your
+   environment.
+3. Run the tools in the order below to build a model and inspect results.
+
+## Workflow
+
+### 1. Parse raw logs
+`Log_Parser.py` scans a folder of text logs and converts each run into a
+Parquet row of numeric measurements. The script writes one Parquet file per
+source log under `Dataset/` and also builds `baseline_v1.parquet` containing
+all parsed rows.
+
+```
+python Log_Parser.py
+```
+
+### 2. Train the Isolation Forest
+`isolation_forest.py` loads all Parquet files from `Dataset/`, selects numeric
+columns, imputes missing values with the median and trains an Isolation Forest.
+The trained pipeline and the list of features used during training are saved in
+`models/`.
+
+```
+python isolation_forest.py
+```
+
+### 3. Review training scores
+`Plot_score2.py` rescoring every run using the trained model and writes a CSV of
+scores plus PNG plots summarising the score distribution.
+
+```
+python Plot_score2.py
+```
+
+### 4. Inspect deviations for a run
+`Numeric_feature.py` reports which features contribute most to an anomalous run.
+Provide a run name or omit it to inspect the most anomalous run automatically.
+
+```
+python Numeric_feature.py <run_name>
+```
+
+### Additional helper scripts
+- `raw_deltas.py` – quick check of raw value deltas versus training medians.
+- `sanity_baseline.py` – simple demo printing the shape of the baseline
+  Parquet file.
+
+## Repository layout
+
+```
+Dataset/   # generated per-run Parquet files
+models/    # saved models and artifacts
+```
+
+The scripts assume these folders exist in the repository root (they will be
+created on first run if missing).
+
+## Notes
+
+- Edit the path variables at the top of each script to point to your log and
+  output directories.
+- The model assumes the runs in `Dataset/` are mostly normal. Outliers will have
+  negative scores.
+- See each script's docstring for further usage details.
 
 
- 
- 
- 
- 
- 
- 
- 
- ┌────────────────────────────┐
- │   Raw TE Logs (*.log)      │
- │  (instrument text output)  │
- └────────────┬───────────────┘
-              │
-              │ parse
-              ▼
- ┌────────────────────────────┐
- │  Log Parsing Scripts       │
- │  • Log_Parser.py           │
- │  • parse_log.py (baseline) │
- └────────────┬───────────────┘
-              │ 1 row per run
-              ▼  (numeric cols)
- ┌────────────────────────────┐
- │   Dataset/  (Per-run       │
- │   *.parquet feature rows)  │
- └────────────┬───────────────┘
-              │ offline model dev
-              ▼
- ┌────────────────────────────┐
- │ train_isoforest_folder.py  │
- │  • load all Dataset rows   │
- │  • numeric select / clean  │
- │  • drop NaN & constant     │
- │  • median impute           │
- │  • scale + IsolationForest │
- │  • light grid search       │
- └────────────┬───────────────┘
-              │ saves model artifacts
-              ▼
- ┌─────────────────────────────────────────────┐
- │ models/                                     │
- │  • isoforest_v1.pkl (pipeline)              │
- │  • isoforest_v1.features.txt (train cols)   │
- │  • isoforest_v1.medians.parquet (optional)  │
- │  • isoforest_thresholds.json (you decide)   │
- └────────────┬────────────────────────────────┘
-              │ analysis / threshold tuning
-              ▼
- ┌────────────────────────────┐
- │ Plot_score2.py             │
- │  • load model + features   │
- │  • rescore all Dataset     │
- │  • CSV + plots             │
- └────────────┬───────────────┘
-              │ drilldown
-              ▼
- ┌────────────────────────────┐
- │ inspect_run.py (optional)  │
- │  • per-run deviation rank  │
- │  • "what-if" feature clamp │
- └────────────┬───────────────┘
-              │ choose thresholds
-              ▼
- ┌────────────────────────────┐
- │ score_new_run.py (TE hook) │
- │  • load model + thresholds │
- │  • score 1 new run parquet │
- │  • PASS / WARN / FAIL      │
- └────────────────────────────┘
