@@ -1,3 +1,25 @@
+1. Log_parser.py  (pre-run Paraquet files for all golden runs)
+-> Input: Raw TE Logs.
+-> Output: Clean numeric Table (1 row = 1 run) saved as Dataset/<run_name>.parquet
+
+2. isolation_forest.py
+-> Input: All the pre-run Parquet files in Dataset/.
+-> Output: A trained model saved to models/isofrest_v1.pkl, plus a tet file lissting exactly which feature columns were used in feature.txt
+
+3. Plot_score2.py (model review/score visualization)
+-> Input: Tranined models/isoforest_v1.plk
+          feature.txt
+          All pre-run Parquet files in Dataset/.
+-> Output: Scores each run (how normal/abnormal), writ4es a .csv of runs+scores+model prediction, savved plots i.e. histograms of scores & sorted score curve in PNG file.
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  ┌────────────────────────────┐
  │   Raw TE Logs (*.log)      │
  │  (instrument text output)  │
